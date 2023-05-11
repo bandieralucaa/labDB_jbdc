@@ -119,17 +119,15 @@ package lab.db.tables;
          throw new UnsupportedOperationException("TODO");
      }
 
-     
-     public List<Student> findByBirthday(final Date date) {
-    
-        final var query = "SELECT * FROM " + TABLE_NAME + "WHERE date = ?";
 
+     public List<Student> findByBirthday(final Date date) {
+        final var query = "SELECT * FROM " + TABLE_NAME + "WHERE date = ?";
         try (final PreparedStatement statement = this.connection.prepareStatement(query)) {
-            //statement.setDate(, date);
-            final var resultSet  statement.executeQuery();
-            return readStudentsFromResultSet(resultSet).stream().findFirst();
-        } catch (FINAL SQLException e) {
-            return Optional.empty();
+            statement.setDate(1, Utils.dateToSqlDate(date));
+            final var resultSet = statement.executeQuery();
+            return readStudentsFromResultSet(resultSet);
+        } catch (final SQLException e) {
+            return List.of();
         }
         
     }
