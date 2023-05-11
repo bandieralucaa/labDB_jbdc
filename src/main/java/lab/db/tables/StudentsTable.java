@@ -38,8 +38,8 @@ package lab.db.tables;
              statement.executeUpdate(
                  "CREATE TABLE " + TABLE_NAME + " (" +
                          "id INT NOT NULL PRIMARY KEY," +
-                         "firstName CHAR(40)," + 
-                         "lastName CHAR(40)," + 
+                         "firstName CHAR(40) NOT NULL," + 
+                         "lastName CHAR(40) NOT NULL," + 
                          "birthday DATE" + 
                      ")");
              return true;
@@ -49,9 +49,27 @@ package lab.db.tables;
          }
      }
 
+     /*
      @Override
      public Optional<Student> findByPrimaryKey(final Integer id) {
-         throw new UnsupportedOperationException("TODO");
+         try (final Statement statement = this.connection.createStatement()) {
+            final var resultSet = statement.executeQuery("SELECT * FROM " + TABLE_NAME + "WHERE id = " + id); //non va mai fatto, mai fidarsi dei valori provenienti dall'esterno in quanto ci potrebbero passare dall'esterno una query che ci elimina tutto. 
+            return readStudentsFromResultSet(resultSet).stream().findFirst();
+         } catch (final SQLException e) {
+            return Optional.empty();
+         }
+     }*/
+
+     @Override
+     public Optional<Student> findByPrimaryKey(final Integer id) {
+        final var query = "SELECT * FROM " + TABLE_NAME + "WHERE id = ?"; //TABLE_NAME così perché è un valore statico e finale alll'interno della classe, non viene dall'esterno
+         try (final PreparedStatement statement = this.connection.prepareStatement(query)) { 
+            statement.setInt(1, id); //il punto interrogativo numero 1 verrà impostato ll volore di id, è più sicuro rispetto a prima. Tutti i ? vanno impostati con un set. 
+            final var resultSet = statement.executeQuery(); 
+            return readStudentsFromResultSet(resultSet).stream().findFirst();
+         } catch (final SQLException e) {
+            return Optional.empty();
+         }
      }
 
      /**
@@ -60,6 +78,7 @@ package lab.db.tables;
       * @return a List of all the students in the ResultSet
       */
      private List<Student> readStudentsFromResultSet(final ResultSet resultSet) {
+
          // Create an empty list, then
          // Inside a loop you should:
          //      1. Call resultSet.next() to advance the pointer and check there are still rows to fetch
@@ -71,7 +90,28 @@ package lab.db.tables;
          // Helpful resources:
          // https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
          // https://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html
+
+        List<Student> students = new ArrayList();
+
+        try {
+            while (resultSet.next()) {
+                     
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("firstName");
+                String surname = resultSet.getString("lastName");
+                Optional<Date> date = Optional.ofNullable(Utils.sqlDateToDate(resultSet.getDate("birthday")));
+                 
+                Student student = new Student(id, name, surname, date);
+            
+                students.add(student);
+                
+            }
+            return students;
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
          throw new UnsupportedOperationException("TODO");
+
      }
 
      @Override
@@ -79,9 +119,20 @@ package lab.db.tables;
          throw new UnsupportedOperationException("TODO");
      }
 
+     
      public List<Student> findByBirthday(final Date date) {
-         throw new UnsupportedOperationException("TODO");
-     }
+    
+        final var query = "SELECT * FROM " + TABLE_NAME + "WHERE date = ?";
+
+        try (final PreparedStatement statement = this.connection.prepareStatement(query)) {
+            //statement.setDate(, date);
+            final var resultSet  statement.executeQuery();
+            return readStudentsFromResultSet(resultSet).stream().findFirst();
+        } catch (FINAL SQLException e) {
+            return Optional.empty();
+        }
+        
+    }
 
      @Override
      public boolean dropTable() {
